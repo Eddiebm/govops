@@ -1,0 +1,5 @@
+Node modules and env files
+.env.local
+node_modules/
+.next/
+*.log
