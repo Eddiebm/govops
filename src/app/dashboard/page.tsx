@@ -52,7 +52,6 @@ export default function DashboardPage() {
   const { user, logOut, loading: authLoading } = useAuth()
   const { data: boards } = useFirestore('boards')
   const { data: meetings } = useFirestore('meetings')
-  const { data: actionItems } = useFirestore('actionItems')
   const router = useRouter()
   const [isInitialized, setIsInitialized] = useState(false)
   const [showBoardsView, setShowBoardsView] = useState(false)
