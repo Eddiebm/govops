@@ -48,6 +48,18 @@ interface ActionItem {
   createdAt: string
 }
 
+interface Meeting {
+  id: string
+  title: string
+  boardId: string
+  scheduledAt: string
+  location: string
+  description: string
+  attendees: string[]
+  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
+  createdAt: string
+}
+
 export default function DashboardPage() {
   const { user, logOut, loading: authLoading } = useAuth()
   const { data: boards } = useFirestore('boards')
@@ -56,6 +68,7 @@ export default function DashboardPage() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [showBoardsView, setShowBoardsView] = useState(false)
   const [showActionItemsView, setShowActionItemsView] = useState(false)
+  const [showMeetingsView, setShowMeetingsView] = useState(false)
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [generatedAgenda, setGeneratedAgenda] = useState('')
@@ -73,6 +86,15 @@ export default function DashboardPage() {
   const [newActionDueDate, setNewActionDueDate] = useState('')
   const [newActionPriority, setNewActionPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium')
   const [newActionBoardId, setNewActionBoardId] = useState('')
+  const [meetings, setMeetings] = useState<Meeting[]>([])
+  const [showAddMeeting, setShowAddMeeting] = useState(false)
+  const [newMeetingTitle, setNewMeetingTitle] = useState('')
+  const [newMeetingBoardId, setNewMeetingBoardId] = useState('')
+  const [newMeetingDate, setNewMeetingDate] = useState('')
+  const [newMeetingTime, setNewMeetingTime] = useState('')
+  const [newMeetingLocation, setNewMeetingLocation] = useState('')
+  const [newMeetingDescription, setNewMeetingDescription] = useState('')
+  const [newMeetingAttendees, setNewMeetingAttendees] = useState<string[]>([])
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -215,6 +237,61 @@ export default function DashboardPage() {
       case 'in-progress': return 'bg-blue-50 border-blue-200'
       case 'open': return 'bg-gray-50 border-gray-200'
       default: return 'bg-gray-50 border-gray-200'
+    }
+  }
+
+  const handleAddMeeting = () => {
+    if (!newMeetingTitle.trim() || !newMeetingBoardId || !newMeetingDate || !newMeetingTime || !newMeetingLocation.trim()) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    const scheduledAt = `${newMeetingDate}T${newMeetingTime}`
+    const newMeeting: Meeting = {
+      id: Date.now().toString(),
+      title: newMeetingTitle,
+      boardId: newMeetingBoardId,
+      scheduledAt,
+      location: newMeetingLocation,
+      description: newMeetingDescription,
+      attendees: newMeetingAttendees.length > 0 ? newMeetingAttendees : [],
+      status: 'scheduled',
+      createdAt: new Date().toISOString(),
+    }
+
+    setMeetings([...meetings, newMeeting])
+    setNewMeetingTitle('')
+    setNewMeetingBoardId('')
+    setNewMeetingDate('')
+    setNewMeetingTime('')
+    setNewMeetingLocation('')
+    setNewMeetingDescription('')
+    setNewMeetingAttendees([])
+    setShowAddMeeting(false)
+    alert('Meeting scheduled!')
+  }
+
+  const handleDeleteMeeting = (meetingId: string) => {
+    setMeetings(meetings.filter(m => m.id !== meetingId))
+  }
+
+  const handleUpdateMeetingStatus = (meetingId: string, newStatus: 'scheduled' | 'in-progress' | 'completed' | 'cancelled') => {
+    setMeetings(meetings.map(m => 
+      m.id === meetingId ? { ...m, status: newStatus } : m
+    ))
+  }
+
+  const getMeetingsByBoard = (boardId: string) => {
+    return meetings.filter(m => m.boardId === boardId)
+  }
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'scheduled': return 'bg-blue-100 text-blue-800'
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800'
+      case 'completed': return 'bg-green-100 text-green-800'
+      case 'cancelled': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -382,6 +459,66 @@ export default function DashboardPage() {
     )
   }
 
+  // MEETINGS VIEW
+  if (showMeetingsView) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <button onClick={() => setShowMeetingsView(false)} className="mb-6 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold">← Back</button>
+          <h1 className="text-4xl font-bold text-gray-900 mb-8">Meetings</h1>
+          <button onClick={() => setShowAddMeeting(!showAddMeeting)} className="mb-8 px-6 py-2 bg-primary text-white rounded-lg font-semibold">{showAddMeeting ? 'Cancel' : 'Schedule Meeting'}</button>
+
+          {showAddMeeting && (
+            <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Schedule Meeting</h2>
+              <input type="text" value={newMeetingTitle} onChange={e => setNewMeetingTitle(e.target.value)} placeholder="Meeting title" className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" />
+              <select value={newMeetingBoardId} onChange={e => setNewMeetingBoardId(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4">
+                <option value="">Select Board</option>
+                {BOARDS.map(b => <option key={b.id} value={b.id}>{b.type}</option>)}
+              </select>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <input type="date" value={newMeetingDate} onChange={e => setNewMeetingDate(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg" />
+                <input type="time" value={newMeetingTime} onChange={e => setNewMeetingTime(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg" />
+              </div>
+              <input type="text" value={newMeetingLocation} onChange={e => setNewMeetingLocation(e.target.value)} placeholder="Location" className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" />
+              <textarea value={newMeetingDescription} onChange={e => setNewMeetingDescription(e.target.value)} placeholder="Description (optional)" className="w-full px-4 py-2 border border-gray-300 rounded-lg h-20 mb-4" />
+              <button onClick={handleAddMeeting} className="w-full px-6 py-2 bg-primary text-white rounded-lg font-semibold">Schedule</button>
+            </div>
+          )}
+
+          {meetings.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-12 text-center"><p className="text-gray-600">No meetings scheduled yet.</p></div>
+          ) : (
+            <div className="space-y-4">
+              {meetings.map(meeting => (
+                <div key={meeting.id} className="bg-white rounded-lg shadow p-6 border-l-4 border-primary">
+                  <div className="flex justify-between items-start mb-3">
+                    <div><h3 className="text-lg font-bold text-gray-900">{meeting.title}</h3><p className="text-sm text-gray-600 mt-1">Board: {BOARDS.find(b => b.id === meeting.boardId)?.type}</p></div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(meeting.status)}`}>{meeting.status.toUpperCase()}</span>
+                  </div>
+                  <p className="text-gray-600 mb-3">{meeting.location}</p>
+                  {meeting.description && <p className="text-gray-600 mb-3">{meeting.description}</p>}
+                  <div className="flex justify-between items-center pt-4 border-t">
+                    <div className="text-sm text-gray-600">{new Date(meeting.scheduledAt).toLocaleString()}</div>
+                    <div className="flex gap-2">
+                      <select value={meeting.status} onChange={e => handleUpdateMeetingStatus(meeting.id, e.target.value as any)} className="text-sm px-3 py-1 border border-gray-300 rounded">
+                        <option value="scheduled">Scheduled</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                      <button onClick={() => handleDeleteMeeting(meeting.id)} className="px-3 py-1 text-red-600 font-medium">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // ACTION ITEMS VIEW
   if (showActionItemsView) {
     return (
@@ -464,7 +601,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">📅 Meetings</h3>
             <p className="text-gray-600 mb-4">{meetings.length} scheduled</p>
-            <button onClick={() => alert('Coming Soon')} className="w-full px-4 py-2 bg-primary text-white rounded-lg font-semibold">Schedule Meeting</button>
+            <button onClick={() => setShowMeetingsView(true)} className="w-full px-4 py-2 bg-primary text-white rounded-lg font-semibold">Schedule Meeting</button>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
