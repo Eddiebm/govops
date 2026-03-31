@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('eddie@coare.io')
+  const [password, setPassword] = useState('demo')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -17,18 +16,13 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error) throw error
-
+    // Demo login - no database needed
+    if (email && password) {
+      // Simulate login delay
+      await new Promise(resolve => setTimeout(resolve, 500))
       router.push('/dashboard')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
-    } finally {
+    } else {
+      setError('Please enter email and password')
       setLoading(false)
     }
   }
@@ -36,9 +30,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-8">
-        <h1 className="text-3xl font-bold text-primary mb-8 text-center">
+        <h1 className="text-3xl font-bold text-primary mb-2 text-center">
           GovOps
         </h1>
+        <p className="text-center text-gray-600 text-sm mb-8">
+          Governance Operations Platform
+        </p>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
@@ -49,10 +46,10 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="you@example.com"
+              placeholder="eddie@coare.io"
             />
+            <p className="text-xs text-gray-500 mt-1">Demo: use any email</p>
           </div>
 
           <div>
@@ -63,14 +60,14 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
               placeholder="••••••••"
             />
+            <p className="text-xs text-gray-500 mt-1">Demo: any password</p>
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
@@ -85,11 +82,14 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-gray-600 text-sm mt-6">
-          Don't have an account?{' '}
-          <Link href="/auth/signup" className="text-primary font-semibold hover:underline">
-            Sign up
-          </Link>
+          Demo mode - no database required
         </p>
+
+        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+          <p className="font-semibold mb-2">Demo Account:</p>
+          <p>Email: eddie@coare.io (or any)</p>
+          <p>Password: demo (or any)</p>
+        </div>
       </div>
     </div>
   )

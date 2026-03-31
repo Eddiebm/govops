@@ -1,39 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { mockData } from '@/lib/supabase'
+import Link from 'next/link'
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
+  const [isLoggedIn, setIsLoggedIn] = useState(true)
+  const user = mockData.users[0]
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        router.push('/auth/login')
-        return
-      }
-
-      setUser(session.user)
-      setLoading(false)
-    }
-
-    getUser()
-  }, [router])
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth/login')
+  const handleLogout = () => {
+    setIsLoggedIn(false)
   }
 
-  if (loading) {
+  if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-lg text-gray-600">Loading...</p>
+      <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+        <div className="text-center text-white">
+          <h1 className="text-3xl font-bold mb-4">You've been logged out</h1>
+          <Link href="/" className="text-lg underline hover:opacity-80">
+            Return to home
+          </Link>
+        </div>
       </div>
     )
   }
@@ -44,10 +31,11 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">GovOps</h1>
           <div className="flex items-center gap-4">
-            <span className="text-gray-700">{user?.email}</span>
+            <span className="text-gray-700">{user.email}</span>
+            <span className="text-sm bg-secondary text-white px-3 py-1 rounded-full">{user.role}</span>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 transition"
             >
               Logout
             </button>
@@ -56,61 +44,86 @@ export default function DashboardPage() {
       </nav>
 
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h2>
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.full_name}</h2>
+          <p className="text-gray-600">Manage boards, meetings, and action items</p>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {/* Upcoming Meetings */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Upcoming Meetings</h3>
-            <p className="text-gray-600 mb-4">No meetings scheduled yet</p>
-            <button className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 font-semibold">
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">📅 Upcoming Meetings</h3>
+            <p className="text-gray-600 mb-4 text-sm">{mockData.meetings.length} scheduled</p>
+            <button className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
               Schedule Meeting
             </button>
           </div>
 
           {/* Open Action Items */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Open Action Items</h3>
-            <p className="text-gray-600 mb-4">No open action items</p>
-            <button className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 font-semibold">
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">✓ Action Items</h3>
+            <p className="text-gray-600 mb-4 text-sm">{mockData.actionItems.length} open</p>
+            <button className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
               Create Action Item
             </button>
           </div>
 
           {/* Boards */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Boards</h3>
-            <p className="text-gray-600 mb-4">Your boards appear here</p>
-            <button className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 font-semibold">
-              View All Boards
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">👥 Boards</h3>
+            <p className="text-gray-600 mb-4 text-sm">{mockData.boards.length} boards</p>
+            <button className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
+              View Boards
             </button>
           </div>
         </div>
 
-        <div className="mt-12 bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Getting Started</h3>
-          <ul className="space-y-3 text-gray-700">
+        {/* Boards Overview */}
+        <div className="bg-white rounded-lg shadow p-6 mb-12">
+          <h3 className="text-xl font-bold text-gray-900 mb-6">Your Boards</h3>
+          <div className="space-y-4">
+            {mockData.boards.map((board) => (
+              <div key={board.id} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-gray-900">{board.name}</h4>
+                    <p className="text-sm text-gray-600 mt-1">{board.description}</p>
+                    <p className="text-xs text-gray-500 mt-2">Cadence: {board.meeting_cadence}</p>
+                  </div>
+                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+                    {board.board_type}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Start */}
+        <div className="bg-gradient-to-r from-primary to-secondary rounded-lg shadow p-8 text-white">
+          <h3 className="text-2xl font-bold mb-6">🚀 Quick Start</h3>
+          <ol className="space-y-4">
             <li className="flex items-start">
-              <span className="text-primary font-bold mr-3">1.</span>
-              <span>Create your boards (SCAB, BOA, Executive)</span>
+              <span className="font-bold mr-4 text-lg">1.</span>
+              <span>Schedule your first board meeting</span>
             </li>
             <li className="flex items-start">
-              <span className="text-primary font-bold mr-3">2.</span>
-              <span>Add board members with appropriate roles</span>
+              <span className="font-bold mr-4 text-lg">2.</span>
+              <span>Create an agenda with discussion topics</span>
             </li>
             <li className="flex items-start">
-              <span className="text-primary font-bold mr-3">3.</span>
-              <span>Schedule your first meeting</span>
+              <span className="font-bold mr-4 text-lg">3.</span>
+              <span>Invite board members (auto-sends email)</span>
             </li>
             <li className="flex items-start">
-              <span className="text-primary font-bold mr-3">4.</span>
-              <span>Create agenda and invite attendees</span>
+              <span className="font-bold mr-4 text-lg">4.</span>
+              <span>Record the meeting and track action items</span>
             </li>
             <li className="flex items-start">
-              <span className="text-primary font-bold mr-3">5.</span>
-              <span>Record meeting and track action items</span>
+              <span className="font-bold mr-4 text-lg">5.</span>
+              <span>Auto-transcribe and distribute minutes</span>
             </li>
-          </ul>
+          </ol>
         </div>
       </div>
     </div>
