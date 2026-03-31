@@ -63,7 +63,6 @@ interface Meeting {
 export default function DashboardPage() {
   const { user, logOut, loading: authLoading } = useAuth()
   const { data: boards } = useFirestore('boards')
-  const { data: meetings } = useFirestore('meetings')
   const router = useRouter()
   const [isInitialized, setIsInitialized] = useState(false)
   const [showBoardsView, setShowBoardsView] = useState(false)
