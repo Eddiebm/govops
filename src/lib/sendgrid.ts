@@ -2,12 +2,15 @@ import sgMail from "@sendgrid/mail";
 
 // Initialize SendGrid
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const FROM_EMAIL = "eddie@coareholdings.com";
+
 if (SENDGRID_API_KEY) {
   sgMail.setApiKey(SENDGRID_API_KEY);
 }
 
 interface EmailPayload {
   to: string[];
+  from: string;
   subject: string;
   html: string;
   text?: string;
@@ -35,6 +38,7 @@ export async function sendMeetingInvite(params: {
 
   const msg: EmailPayload = {
     to: params.boardMembers,
+    from: FROM_EMAIL,
     subject: `Meeting Invitation: ${params.meetingTitle}`,
     html,
     text: `You're invited to: ${params.meetingTitle}\n\nBoard: ${params.boardName}\nDate & Time: ${new Date(params.scheduledAt).toLocaleString()}\nLocation: ${params.location}`,
@@ -70,6 +74,7 @@ export async function sendMinutesNotification(params: {
 
   const msg: EmailPayload = {
     to: params.boardMembers,
+    from: FROM_EMAIL,
     subject: `Meeting Minutes: ${params.meetingTitle}`,
     html,
   };
@@ -108,6 +113,7 @@ export async function sendActionItemAssignment(params: {
 
   const msg: EmailPayload = {
     to: [params.assignee],
+    from: FROM_EMAIL,
     subject: `Action Item Assigned: ${params.task}`,
     html,
   };
