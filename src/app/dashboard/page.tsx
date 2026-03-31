@@ -62,7 +62,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
             <h3 className="text-xl font-bold text-gray-900 mb-4">📅 Upcoming Meetings</h3>
             <p className="text-gray-600 mb-4 text-sm">{meetings.length} scheduled</p>
-            <button className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
+            <button onClick={() => alert('Schedule Meeting - Coming Soon')} className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 font-semibold transition cursor-pointer">
               Schedule Meeting
             </button>
           </div>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
             <h3 className="text-xl font-bold text-gray-900 mb-4">✓ Action Items</h3>
             <p className="text-gray-600 mb-4 text-sm">{actionItems.length} open</p>
-            <button className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
+            <button onClick={() => alert('Create Action Item - Coming Soon')} className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 font-semibold transition cursor-pointer">
               Create Action Item
             </button>
           </div>
@@ -80,7 +80,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
             <h3 className="text-xl font-bold text-gray-900 mb-4">👥 Boards</h3>
             <p className="text-gray-600 mb-4 text-sm">{boards.length} boards</p>
-            <button className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
+            <button onClick={() => alert('View Boards - Coming Soon')} className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 font-semibold transition cursor-pointer">
               View Boards
             </button>
           </div>
