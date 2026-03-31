@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAgendaFromNotes, generateMinutesFromNotes } from "@/lib/claude";
-import { sendMeetingInvite, sendMinutesNotification } from "@/lib/email";
+import { sendMeetingInvite, sendMeetingMinutes, sendActionItemAssignment, sendMinutesNotification } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +29,32 @@ export async function POST(request: NextRequest) {
           meetingTitle: data.meetingTitle,
           scheduledAt: data.scheduledAt,
           location: data.location,
+          boardMembers: data.boardMembers,
+          description: data.description,
+          agenda: data.agenda,
+        });
+        return NextResponse.json({ success: true });
+
+      case "sendMeetingInvites":
+        await sendMeetingInvite({
+          boardName: data.boardName,
+          meetingTitle: data.meetingTitle,
+          scheduledAt: data.scheduledAt,
+          location: data.location,
+          boardMembers: data.boardMembers,
+          description: data.description,
+          agenda: data.agenda,
+        });
+        return NextResponse.json({ success: true });
+
+      case "sendMeetingMinutes":
+        await sendMeetingMinutes({
+          boardName: data.boardName,
+          meetingTitle: data.meetingTitle,
+          summary: data.summary,
+          keyDecisions: data.keyDecisions || [],
+          nextSteps: data.nextSteps || [],
+          actionItems: data.actionItems || [],
           boardMembers: data.boardMembers,
         });
         return NextResponse.json({ success: true });

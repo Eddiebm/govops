@@ -94,6 +94,14 @@ export default function DashboardPage() {
   const [newMeetingLocation, setNewMeetingLocation] = useState('')
   const [newMeetingDescription, setNewMeetingDescription] = useState('')
   const [newMeetingAttendees, setNewMeetingAttendees] = useState<string[]>([])
+  const [showSendInvite, setShowSendInvite] = useState(false)
+  const [selectedMeetingToInvite, setSelectedMeetingToInvite] = useState<string | null>(null)
+  const [showSendMinutes, setShowSendMinutes] = useState(false)
+  const [selectedMeetingForMinutes, setSelectedMeetingForMinutes] = useState<string | null>(null)
+  const [minutesSummary, setMinutesSummary] = useState('')
+  const [minutesDecisions, setMinutesDecisions] = useState('')
+  const [minutesNextSteps, setMinutesNextSteps] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -291,6 +299,104 @@ export default function DashboardPage() {
       case 'completed': return 'bg-green-100 text-green-800'
       case 'cancelled': return 'bg-red-100 text-red-800'
       default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const handleSendMeetingInvites = async () => {
+    if (!selectedMeetingToInvite) return
+    
+    const meeting = meetings.find(m => m.id === selectedMeetingToInvite)
+    if (!meeting) return
+
+    const board = BOARDS.find(b => b.id === meeting.boardId)
+    if (!board) return
+
+    setSendingEmail(true)
+    try {
+      const response = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sendMeetingInvites',
+          meetingTitle: meeting.title,
+          boardName: board.name,
+          scheduledAt: meeting.scheduledAt,
+          location: meeting.location,
+          description: meeting.description,
+          agenda: generatedAgenda,
+          boardMembers: members.filter(m => m.boards.includes(meeting.boardId)).map(m => m.email),
+        }),
+      })
+
+      if (response.ok) {
+        alert('Meeting invites sent successfully!')
+        setShowSendInvite(false)
+        setSelectedMeetingToInvite(null)
+      } else {
+        alert('Error sending invites. Make sure Resend API key is configured.')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error sending invites')
+    } finally {
+      setSendingEmail(false)
+    }
+  }
+
+  const handleSendMeetingMinutes = async () => {
+    if (!selectedMeetingForMinutes) return
+
+    const meeting = meetings.find(m => m.id === selectedMeetingForMinutes)
+    if (!meeting) return
+
+    const board = BOARDS.find(b => b.id === meeting.boardId)
+    if (!board) return
+
+    if (!minutesSummary.trim()) {
+      alert('Please enter a summary')
+      return
+    }
+
+    setSendingEmail(true)
+    try {
+      const decisions = minutesDecisions.split('\n').filter(d => d.trim())
+      const nextSteps = minutesNextSteps.split('\n').filter(s => s.trim())
+      const boardMembers = members.filter(m => m.boards.includes(meeting.boardId)).map(m => m.email)
+
+      const response = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sendMeetingMinutes',
+          meetingTitle: meeting.title,
+          boardName: board.name,
+          summary: minutesSummary,
+          keyDecisions: decisions,
+          nextSteps: nextSteps,
+          actionItems: actionItems.filter(ai => ai.boardId === meeting.boardId).map(ai => ({
+            task: ai.title,
+            owner: ai.assignedTo,
+            dueDate: ai.dueDate,
+          })),
+          boardMembers: boardMembers,
+        }),
+      })
+
+      if (response.ok) {
+        alert('Meeting minutes sent successfully!')
+        setShowSendMinutes(false)
+        setSelectedMeetingForMinutes(null)
+        setMinutesSummary('')
+        setMinutesDecisions('')
+        setMinutesNextSteps('')
+      } else {
+        alert('Error sending minutes. Make sure Resend API key is configured.')
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      alert('Error sending minutes')
+    } finally {
+      setSendingEmail(false)
     }
   }
 
@@ -506,20 +612,47 @@ export default function DashboardPage() {
                         <option value="completed">Completed</option>
                         <option value="cancelled">Cancelled</option>
                       </select>
-                      <button onClick={() => handleDeleteMeeting(meeting.id)} className="px-3 py-1 text-red-600 font-medium">Delete</button>
+                      <button onClick={() => { setSelectedMeetingToInvite(meeting.id); setShowSendInvite(true); }} className="px-3 py-1 text-blue-600 font-medium text-sm hover:bg-blue-50 rounded">Send Invite</button>
+                      <button onClick={() => { setSelectedMeetingForMinutes(meeting.id); setShowSendMinutes(true); }} className="px-3 py-1 text-green-600 font-medium text-sm hover:bg-green-50 rounded">Send Minutes</button>
+                      <button onClick={() => handleDeleteMeeting(meeting.id)} className="px-3 py-1 text-red-600 font-medium text-sm">Delete</button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
+
+          {showSendInvite && selectedMeetingToInvite && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Send Meeting Invites</h2>
+                <p className="text-gray-600 mb-4">Send invitation to {members.filter(m => m.boards.includes(meetings.find(mt => mt.id === selectedMeetingToInvite)?.boardId || '')).length} board members?</p>
+                <div className="flex gap-2">
+                  <button onClick={handleSendMeetingInvites} disabled={sendingEmail} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">{sendingEmail ? 'Sending...' : 'Send'}</button>
+                  <button onClick={() => setShowSendInvite(false)} className="flex-1 px-4 py-2 bg-gray-300 text-gray-900 rounded-lg font-semibold">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showSendMinutes && selectedMeetingForMinutes && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
+              <div className="bg-white rounded-lg shadow-xl p-8 max-w-2xl w-full mx-4 my-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Send Meeting Minutes</h2>
+                <textarea value={minutesSummary} onChange={e => setMinutesSummary(e.target.value)} placeholder="Meeting summary..." className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 h-24" />
+                <textarea value={minutesDecisions} onChange={e => setMinutesDecisions(e.target.value)} placeholder="Key decisions (one per line)..." className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 h-20" />
+                <textarea value={minutesNextSteps} onChange={e => setMinutesNextSteps(e.target.value)} placeholder="Next steps (one per line)..." className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 h-20" />
+                <div className="flex gap-2">
+                  <button onClick={handleSendMeetingMinutes} disabled={sendingEmail} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50">{sendingEmail ? 'Sending...' : 'Send Minutes'}</button>
+                  <button onClick={() => setShowSendMinutes(false)} className="flex-1 px-4 py-2 bg-gray-300 text-gray-900 rounded-lg font-semibold">Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
   }
-
-  // ACTION ITEMS VIEW
-  if (showActionItemsView) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 py-12">
