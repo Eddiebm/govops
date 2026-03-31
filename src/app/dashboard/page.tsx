@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useFirebaseAuth'
 import { useFirestore } from '@/hooks/useFirestore'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const { user, logOut, loading: authLoading } = useAuth()
@@ -80,9 +80,11 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
             <h3 className="text-xl font-bold text-gray-900 mb-4">👥 Boards</h3>
             <p className="text-gray-600 mb-4 text-sm">{boards.length} boards</p>
-            <button onClick={() => alert('View Boards - Coming Soon')} className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 font-semibold transition cursor-pointer">
-              View Boards
-            </button>
+            <Link href="/boards" className="inline-block w-full">
+              <button className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 font-semibold transition cursor-pointer">
+                View Boards
+              </button>
+            </Link>
           </div>
         </div>
 
