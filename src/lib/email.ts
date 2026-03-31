@@ -1,6 +1,18 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialize - only when actually used
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  if (!resendClient) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
+
 const FROM_EMAIL = "eddie@coareholdings.com";
 
 export async function sendMeetingInvite(params: {
@@ -10,7 +22,8 @@ export async function sendMeetingInvite(params: {
   location: string;
   boardMembers: string[];
 }): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResendClient();
+  if (!resend) {
     console.warn("Resend API key not configured. Email not sent.");
     return;
   }
@@ -43,7 +56,8 @@ export async function sendMinutesNotification(params: {
   summary: string;
   boardMembers: string[];
 }): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResendClient();
+  if (!resend) {
     console.warn("Resend API key not configured. Email not sent.");
     return;
   }
@@ -80,7 +94,8 @@ export async function sendActionItemAssignment(params: {
   dueDate: string;
   boardName: string;
 }): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResendClient();
+  if (!resend) {
     console.warn("Resend API key not configured. Email not sent.");
     return;
   }
