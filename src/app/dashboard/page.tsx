@@ -1,26 +1,35 @@
 'use client'
 
-import { useState } from 'react'
-import { mockData } from '@/lib/supabase'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/useFirebaseAuth'
+import { useFirestore } from '@/hooks/useFirestore'
+import { useRouter } from 'next/navigation'
 
 export default function DashboardPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true)
-  const user = mockData.users[0]
+  const { user, logOut, loading: authLoading } = useAuth()
+  const { data: boards } = useFirestore('boards')
+  const { data: meetings } = useFirestore('meetings')
+  const { data: actionItems } = useFirestore('actionItems')
+  const router = useRouter()
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  const handleLogout = () => {
-    setIsLoggedIn(false)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login')
+    } else if (!authLoading && user) {
+      setIsInitialized(true)
+    }
+  }, [user, authLoading, router])
+
+  const handleLogout = async () => {
+    await logOut()
+    router.push('/auth/login')
   }
 
-  if (!isLoggedIn) {
+  if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-        <div className="text-center text-white">
-          <h1 className="text-3xl font-bold mb-4">You've been logged out</h1>
-          <Link href="/" className="text-lg underline hover:opacity-80">
-            Return to home
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-lg text-gray-600">Loading...</p>
       </div>
     )
   }
@@ -31,8 +40,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-primary">GovOps</h1>
           <div className="flex items-center gap-4">
-            <span className="text-gray-700">{user.email}</span>
-            <span className="text-sm bg-secondary text-white px-3 py-1 rounded-full">{user.role}</span>
+            <span className="text-gray-700">{user?.email}</span>
             <button
               onClick={handleLogout}
               className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 transition"
@@ -45,7 +53,7 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user.full_name}</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome to GovOps</h2>
           <p className="text-gray-600">Manage boards, meetings, and action items</p>
         </div>
 
@@ -53,7 +61,7 @@ export default function DashboardPage() {
           {/* Upcoming Meetings */}
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
             <h3 className="text-xl font-bold text-gray-900 mb-4">📅 Upcoming Meetings</h3>
-            <p className="text-gray-600 mb-4 text-sm">{mockData.meetings.length} scheduled</p>
+            <p className="text-gray-600 mb-4 text-sm">{meetings.length} scheduled</p>
             <button className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
               Schedule Meeting
             </button>
@@ -62,7 +70,7 @@ export default function DashboardPage() {
           {/* Open Action Items */}
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
             <h3 className="text-xl font-bold text-gray-900 mb-4">✓ Action Items</h3>
-            <p className="text-gray-600 mb-4 text-sm">{mockData.actionItems.length} open</p>
+            <p className="text-gray-600 mb-4 text-sm">{actionItems.length} open</p>
             <button className="w-full px-4 py-2 bg-accent text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
               Create Action Item
             </button>
@@ -71,7 +79,7 @@ export default function DashboardPage() {
           {/* Boards */}
           <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
             <h3 className="text-xl font-bold text-gray-900 mb-4">👥 Boards</h3>
-            <p className="text-gray-600 mb-4 text-sm">{mockData.boards.length} boards</p>
+            <p className="text-gray-600 mb-4 text-sm">{boards.length} boards</p>
             <button className="w-full px-4 py-2 bg-secondary text-white rounded-lg hover:bg-opacity-90 font-semibold transition">
               View Boards
             </button>
@@ -81,47 +89,51 @@ export default function DashboardPage() {
         {/* Boards Overview */}
         <div className="bg-white rounded-lg shadow p-6 mb-12">
           <h3 className="text-xl font-bold text-gray-900 mb-6">Your Boards</h3>
-          <div className="space-y-4">
-            {mockData.boards.map((board) => (
-              <div key={board.id} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-bold text-gray-900">{board.name}</h4>
-                    <p className="text-sm text-gray-600 mt-1">{board.description}</p>
-                    <p className="text-xs text-gray-500 mt-2">Cadence: {board.meeting_cadence}</p>
+          {boards.length === 0 ? (
+            <p className="text-gray-600">No boards yet. Create one to get started.</p>
+          ) : (
+            <div className="space-y-4">
+              {boards.map((board: any) => (
+                <div key={board.id} className="border border-gray-200 rounded-lg p-4 hover:border-primary transition">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-gray-900">{board.name}</h4>
+                      <p className="text-sm text-gray-600 mt-1">{board.description}</p>
+                      <p className="text-xs text-gray-500 mt-2">Cadence: {board.meeting_cadence || 'Not set'}</p>
+                    </div>
+                    <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
+                      {board.board_type || 'BOARD'}
+                    </span>
                   </div>
-                  <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
-                    {board.board_type}
-                  </span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Quick Start */}
         <div className="bg-gradient-to-r from-primary to-secondary rounded-lg shadow p-8 text-white">
-          <h3 className="text-2xl font-bold mb-6">🚀 Quick Start</h3>
+          <h3 className="text-2xl font-bold mb-6">🚀 Getting Started</h3>
           <ol className="space-y-4">
             <li className="flex items-start">
               <span className="font-bold mr-4 text-lg">1.</span>
-              <span>Schedule your first board meeting</span>
+              <span>Create your first board (SCAB, BOA, or custom)</span>
             </li>
             <li className="flex items-start">
               <span className="font-bold mr-4 text-lg">2.</span>
-              <span>Create an agenda with discussion topics</span>
+              <span>Add board members with roles</span>
             </li>
             <li className="flex items-start">
               <span className="font-bold mr-4 text-lg">3.</span>
-              <span>Invite board members (auto-sends email)</span>
+              <span>Schedule your first meeting</span>
             </li>
             <li className="flex items-start">
               <span className="font-bold mr-4 text-lg">4.</span>
-              <span>Record the meeting and track action items</span>
+              <span>Create agenda and invite attendees</span>
             </li>
             <li className="flex items-start">
               <span className="font-bold mr-4 text-lg">5.</span>
-              <span>Auto-transcribe and distribute minutes</span>
+              <span>Record, transcribe, and track action items</span>
             </li>
           </ol>
         </div>
