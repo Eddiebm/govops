@@ -36,6 +36,18 @@ interface Member {
   boards: string[]
 }
 
+interface ActionItem {
+  id: string
+  title: string
+  description: string
+  assignedTo: string
+  dueDate: string
+  status: 'open' | 'in-progress' | 'completed'
+  priority: 'low' | 'medium' | 'high' | 'critical'
+  boardId: string
+  createdAt: string
+}
+
 export default function DashboardPage() {
   const { user, logOut, loading: authLoading } = useAuth()
   const { data: boards } = useFirestore('boards')
@@ -44,6 +56,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [isInitialized, setIsInitialized] = useState(false)
   const [showBoardsView, setShowBoardsView] = useState(false)
+  const [showActionItemsView, setShowActionItemsView] = useState(false)
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null)
   const [notes, setNotes] = useState('')
   const [generatedAgenda, setGeneratedAgenda] = useState('')
@@ -53,6 +66,14 @@ export default function DashboardPage() {
   const [newMemberName, setNewMemberName] = useState('')
   const [newMemberEmail, setNewMemberEmail] = useState('')
   const [selectedBoardsForMember, setSelectedBoardsForMember] = useState<string[]>([])
+  const [actionItems, setActionItems] = useState<ActionItem[]>([])
+  const [showAddActionItem, setShowAddActionItem] = useState(false)
+  const [newActionTitle, setNewActionTitle] = useState('')
+  const [newActionDescription, setNewActionDescription] = useState('')
+  const [newActionAssignee, setNewActionAssignee] = useState('')
+  const [newActionDueDate, setNewActionDueDate] = useState('')
+  const [newActionPriority, setNewActionPriority] = useState<'low' | 'medium' | 'high' | 'critical'>('medium')
+  const [newActionBoardId, setNewActionBoardId] = useState('')
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -133,6 +154,68 @@ export default function DashboardPage() {
       setSelectedBoardsForMember(selectedBoardsForMember.filter(b => b !== boardId))
     } else {
       setSelectedBoardsForMember([...selectedBoardsForMember, boardId])
+    }
+  }
+
+  const handleAddActionItem = () => {
+    if (!newActionTitle.trim() || !newActionAssignee.trim() || !newActionDueDate || !newActionBoardId) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    const newItem: ActionItem = {
+      id: Date.now().toString(),
+      title: newActionTitle,
+      description: newActionDescription,
+      assignedTo: newActionAssignee,
+      dueDate: newActionDueDate,
+      status: 'open',
+      priority: newActionPriority,
+      boardId: newActionBoardId,
+      createdAt: new Date().toISOString(),
+    }
+
+    setActionItems([...actionItems, newItem])
+    setNewActionTitle('')
+    setNewActionDescription('')
+    setNewActionAssignee('')
+    setNewActionDueDate('')
+    setNewActionPriority('medium')
+    setNewActionBoardId('')
+    setShowAddActionItem(false)
+    alert('Action item created!')
+  }
+
+  const handleUpdateActionItemStatus = (itemId: string, newStatus: 'open' | 'in-progress' | 'completed') => {
+    setActionItems(actionItems.map(item => 
+      item.id === itemId ? { ...item, status: newStatus } : item
+    ))
+  }
+
+  const handleDeleteActionItem = (itemId: string) => {
+    setActionItems(actionItems.filter(item => item.id !== itemId))
+  }
+
+  const getActionItemsByBoard = (boardId: string) => {
+    return actionItems.filter(item => item.boardId === boardId)
+  }
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return 'bg-red-100 text-red-800'
+      case 'high': return 'bg-orange-100 text-orange-800'
+      case 'medium': return 'bg-yellow-100 text-yellow-800'
+      case 'low': return 'bg-green-100 text-green-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'bg-green-50 border-green-200'
+      case 'in-progress': return 'bg-blue-50 border-blue-200'
+      case 'open': return 'bg-gray-50 border-gray-200'
+      default: return 'bg-gray-50 border-gray-200'
     }
   }
 
@@ -300,6 +383,66 @@ export default function DashboardPage() {
     )
   }
 
+  // ACTION ITEMS VIEW
+  if (showActionItemsView) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <button onClick={() => setShowActionItemsView(false)} className="mb-6 px-4 py-2 bg-gray-600 text-white rounded-lg font-semibold">← Back</button>
+          <h1 className="text-4xl font-bold text-gray-900 mb-8">Action Items</h1>
+          <button onClick={() => setShowAddActionItem(!showAddActionItem)} className="mb-8 px-6 py-2 bg-accent text-white rounded-lg font-semibold">{showAddActionItem ? 'Cancel' : 'Create Item'}</button>
+
+          {showAddActionItem && (
+            <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">New Action Item</h2>
+              <input type="text" value={newActionTitle} onChange={e => setNewActionTitle(e.target.value)} placeholder="Title" className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" />
+              <input type="text" value={newActionAssignee} onChange={e => setNewActionAssignee(e.target.value)} placeholder="Assigned to" className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" />
+              <input type="date" value={newActionDueDate} onChange={e => setNewActionDueDate(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4" />
+              <select value={newActionPriority} onChange={e => setNewActionPriority(e.target.value as any)} className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+              <select value={newActionBoardId} onChange={e => setNewActionBoardId(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4">
+                <option value="">Select Board</option>
+                {BOARDS.map(b => <option key={b.id} value={b.id}>{b.type}</option>)}
+              </select>
+              <textarea value={newActionDescription} onChange={e => setNewActionDescription(e.target.value)} placeholder="Description" className="w-full px-4 py-2 border border-gray-300 rounded-lg h-20 mb-4" />
+              <button onClick={handleAddActionItem} className="w-full px-6 py-2 bg-accent text-white rounded-lg font-semibold">Create</button>
+            </div>
+          )}
+
+          {actionItems.length === 0 ? (
+            <div className="bg-white rounded-lg shadow p-12 text-center"><p className="text-gray-600">No action items yet.</p></div>
+          ) : (
+            <div className="space-y-4">
+              {actionItems.map(item => (
+                <div key={item.id} className={`rounded-lg shadow p-6 border-l-4 ${getStatusColor(item.status)}`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div><h3 className="text-lg font-bold text-gray-900">{item.title}</h3><p className="text-sm text-gray-600 mt-1">To: {item.assignedTo}</p></div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(item.priority)}`}>{item.priority.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t">
+                    <div className="text-sm text-gray-600">Due: {new Date(item.dueDate).toLocaleDateString()}</div>
+                    <div className="flex gap-2">
+                      <select value={item.status} onChange={e => handleUpdateActionItemStatus(item.id, e.target.value as any)} className="text-sm px-3 py-1 border border-gray-300 rounded">
+                        <option value="open">Open</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                      <button onClick={() => handleDeleteActionItem(item.id)} className="px-3 py-1 text-red-600 font-medium">Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   // DASHBOARD VIEW
   return (
     <div className="min-h-screen bg-gray-50">
@@ -328,7 +471,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">✓ Action Items</h3>
             <p className="text-gray-600 mb-4">{actionItems.length} open</p>
-            <button onClick={() => alert('Coming Soon')} className="w-full px-4 py-2 bg-accent text-white rounded-lg font-semibold">Create Item</button>
+            <button onClick={() => setShowActionItemsView(true)} className="w-full px-4 py-2 bg-accent text-white rounded-lg font-semibold">Manage Items</button>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
