@@ -111,6 +111,24 @@ export default function DashboardPage() {
     }
   }, [user, authLoading, router])
 
+  // Load members from Firebase
+  useEffect(() => {
+    if (isInitialized) {
+      const loadMembers = async () => {
+        try {
+          const response = await fetch('/api/boards?action=getMembers')
+          if (response.ok) {
+            const data = await response.json()
+            setMembers(data.members || [])
+          }
+        } catch (error) {
+          console.error('Error loading members:', error)
+        }
+      }
+      loadMembers()
+    }
+  }, [isInitialized])
+
   const handleLogout = async () => {
     await logOut()
     router.push('/auth/login')
@@ -147,7 +165,7 @@ export default function DashboardPage() {
     }
   }
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (!newMemberName.trim() || !newMemberEmail.trim()) {
       alert('Please enter both name and email')
       return
@@ -170,11 +188,42 @@ export default function DashboardPage() {
     setNewMemberEmail('')
     setSelectedBoardsForMember([])
     setShowAddMember(false)
+
+    // Save to Firebase
+    try {
+      const response = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'saveMember',
+          member: newMember,
+        }),
+      })
+      if (!response.ok) console.error('Failed to save member to Firebase')
+    } catch (error) {
+      console.error('Error saving member:', error)
+    }
+
     alert(`${newMemberName} added to ${selectedBoardsForMember.length} board(s)`)
   }
 
-  const handleRemoveMember = (memberId: string) => {
+  const handleRemoveMember = async (memberId: string) => {
     setMembers(members.filter(m => m.id !== memberId))
+    
+    // Delete from Firebase
+    try {
+      const response = await fetch('/api/boards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'deleteMember',
+          memberId: memberId,
+        }),
+      })
+      if (!response.ok) console.error('Failed to delete member from Firebase')
+    } catch (error) {
+      console.error('Error deleting member:', error)
+    }
   }
 
   const handleToggleBoardForMember = (boardId: string) => {
