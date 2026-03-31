@@ -6,6 +6,14 @@ export async function POST(request: NextRequest) {
   try {
     const { action, data } = await request.json();
 
+    // Check for required API keys
+    if (!process.env.ANTHROPIC_API_KEY && (action === "generateAgenda" || action === "generateMinutes")) {
+      return NextResponse.json(
+        { error: "Claude API key not configured. Please add ANTHROPIC_API_KEY to environment variables." },
+        { status: 500 }
+      );
+    }
+
     switch (action) {
       case "generateAgenda":
         const agenda = await generateAgendaFromNotes(data.notes);
@@ -39,9 +47,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Board API error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const errorMessage = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
