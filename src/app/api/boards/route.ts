@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAgendaFromNotes, generateMinutesFromNotes } from "@/lib/claude";
-import { sendMeetingInvite, sendMinutesNotification } from "@/lib/sendgrid";
+import { sendMeetingInvite, sendMinutesNotification } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {

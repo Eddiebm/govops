@@ -1,20 +1,7 @@
-import sgMail from "@sendgrid/mail";
+import { Resend } from "resend";
 
-// Initialize SendGrid
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = "eddie@coareholdings.com";
-
-if (SENDGRID_API_KEY) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-}
-
-interface EmailPayload {
-  to: string[];
-  from: string;
-  subject: string;
-  html: string;
-  text?: string;
-}
 
 export async function sendMeetingInvite(params: {
   boardName: string;
@@ -23,8 +10,8 @@ export async function sendMeetingInvite(params: {
   location: string;
   boardMembers: string[];
 }): Promise<void> {
-  if (!SENDGRID_API_KEY) {
-    console.warn("SendGrid API key not configured. Email not sent.");
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("Resend API key not configured. Email not sent.");
     return;
   }
 
@@ -36,16 +23,13 @@ export async function sendMeetingInvite(params: {
     <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">View in GovOps</a></p>
   `;
 
-  const msg: EmailPayload = {
-    to: params.boardMembers,
-    from: FROM_EMAIL,
-    subject: `Meeting Invitation: ${params.meetingTitle}`,
-    html,
-    text: `You're invited to: ${params.meetingTitle}\n\nBoard: ${params.boardName}\nDate & Time: ${new Date(params.scheduledAt).toLocaleString()}\nLocation: ${params.location}`,
-  };
-
   try {
-    await sgMail.send(msg);
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: params.boardMembers,
+      subject: `Meeting Invitation: ${params.meetingTitle}`,
+      html,
+    });
     console.log("Meeting invite sent to", params.boardMembers.length, "members");
   } catch (error) {
     console.error("Error sending meeting invite:", error);
@@ -59,8 +43,8 @@ export async function sendMinutesNotification(params: {
   summary: string;
   boardMembers: string[];
 }): Promise<void> {
-  if (!SENDGRID_API_KEY) {
-    console.warn("SendGrid API key not configured. Email not sent.");
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("Resend API key not configured. Email not sent.");
     return;
   }
 
@@ -72,15 +56,13 @@ export async function sendMinutesNotification(params: {
     <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">View full minutes in GovOps</a></p>
   `;
 
-  const msg: EmailPayload = {
-    to: params.boardMembers,
-    from: FROM_EMAIL,
-    subject: `Meeting Minutes: ${params.meetingTitle}`,
-    html,
-  };
-
   try {
-    await sgMail.send(msg);
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: params.boardMembers,
+      subject: `Meeting Minutes: ${params.meetingTitle}`,
+      html,
+    });
     console.log(
       "Minutes notification sent to",
       params.boardMembers.length,
@@ -98,8 +80,8 @@ export async function sendActionItemAssignment(params: {
   dueDate: string;
   boardName: string;
 }): Promise<void> {
-  if (!SENDGRID_API_KEY) {
-    console.warn("SendGrid API key not configured. Email not sent.");
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("Resend API key not configured. Email not sent.");
     return;
   }
 
@@ -111,15 +93,13 @@ export async function sendActionItemAssignment(params: {
     <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard">View in GovOps</a></p>
   `;
 
-  const msg: EmailPayload = {
-    to: [params.assignee],
-    from: FROM_EMAIL,
-    subject: `Action Item Assigned: ${params.task}`,
-    html,
-  };
-
   try {
-    await sgMail.send(msg);
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [params.assignee],
+      subject: `Action Item Assigned: ${params.task}`,
+      html,
+    });
     console.log("Action item assigned to", params.assignee);
   } catch (error) {
     console.error("Error sending action item assignment:", error);
