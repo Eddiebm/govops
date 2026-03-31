@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useFirebaseAuth'
 import { useFirestore } from '@/hooks/useFirestore'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function DashboardPage() {
